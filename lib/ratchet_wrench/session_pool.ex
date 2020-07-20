@@ -197,21 +197,22 @@ defmodule RatchetWrench.SessionPool do
 
   @impl GenServer
   def handle_cast({:checkin, session}, pool) do
-    if is_safe_session?(session) do
-      pool = Map.merge(pool, %{idle: pool.idle ++ [session]})
-      {:noreply, pool}
-    else
-      checkout_sessions = Enum.reduce(pool.checkout, [], fn(checkout_session, acc) ->
-                            if session.name == checkout_session.name do
-                              acc
-                            else
-                              acc ++ [checkout_session]
-                            end
-                          end)
-      pool = Map.merge(pool, %{checkout: checkout_sessions})
-      pool = Map.merge(pool, %{idle: pool.idle ++ [new_session()]})
-      {:noreply, pool}
-    end
+    checkout_sessions =
+      Enum.filter(pool.checkout, fn checkout_session ->
+        checkout_session.name != session.name
+      end)
+
+    idle_sessions =
+      if is_safe_session?(session) do
+        pool.idle ++ [session]
+      else
+        pool.idle ++ [new_session()]
+      end
+
+    pool = Map.merge(pool, %{checkout: checkout_sessions})
+    pool = Map.merge(pool, %{idle: idle_sessions})
+
+    {:noreply, pool}
   end
 
   @impl GenServer
