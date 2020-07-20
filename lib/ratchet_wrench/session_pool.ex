@@ -204,9 +204,9 @@ defmodule RatchetWrench.SessionPool do
 
     idle_sessions =
       if is_safe_session?(session) do
-        pool.idle ++ [session]
+        [session | pool.idle]
       else
-        pool.idle ++ [new_session()]
+        [new_session() | pool.idle]
       end
 
     pool = Map.merge(pool, %{checkout: checkout_sessions})
